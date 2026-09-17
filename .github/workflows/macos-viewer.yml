@@ -1,0 +1,57 @@
+name: Ubuntu macOS viewer
+
+on:
+  push:
+    branches: [macos-compat]
+    tags: ['macos-*']
+  pull_request:
+    branches: [macos-compat]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.04
+    timeout-minutes: 20
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates git build-essential cmake pkg-config dpkg-dev \
+            libfltk1.3-dev libpixman-1-dev libjpeg-turbo8-dev \
+            libgnutls28-dev nettle-dev libgmp-dev zlib1g-dev \
+            libxtst-dev libxdamage-dev libxfixes-dev libxrandr-dev \
+            libxi-dev libxinerama-dev libxcursor-dev libgtest-dev \
+            python3 xvfb xauth xdotool
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DBUILD_VIEWER=ON -DENABLE_GNUTLS=ON -DENABLE_NETTLE=ON \
+            -DENABLE_WAYLAND=OFF -DENABLE_NLS=OFF -DENABLE_H264=OFF \
+            -DENABLE_AUDIO=OFF -DENABLE_PAM=OFF -DENABLE_PWQUALITY=OFF \
+            -DENABLE_SYSTEMD=OFF
+      - name: Build and test
+        run: |
+          cmake --build build --parallel 4
+          ctest --test-dir build/tests/unit --output-on-failure
+          xvfb-run -a python3 tests/remote-input-wire.py build/vncviewer/vncviewer
+      - name: Package and verify installation
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          bash packaging/build-deb.sh
+          apt-get install -y ./dist/*.deb
+          vncviewer-macos --help 2>&1 | tee /tmp/viewer-help.txt
+          grep -q ScrollWheelSpeed /tmp/viewer-help.txt
+          grep -q MacOSOptionKey /tmp/viewer-help.txt
+          cd dist
+          sha256sum *.deb > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tigervnc-macos-ubuntu26.04-amd64
+          path: dist/
+          if-no-files-found: error

@@ -9,6 +9,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17")
 
 enable_testing()
 
+add_executable(remoteinput remoteinput.cxx)
+target_link_libraries(remoteinput core GTest::gtest_main)
+gtest_discover_tests(remoteinput)
+
 include_directories(${CMAKE_SOURCE_DIR}/vncviewer)
 
 add_executable(configargs configargs.cxx)

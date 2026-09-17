@@ -1,0 +1,3 @@
+#!/bin/sh
+# Defaults for Apple's built-in server; later user arguments can override them.
+exec vncviewer-macos -ScrollWheelSpeed=12 -MacOSOptionKey=1 -RemoteResize=0 "$@"

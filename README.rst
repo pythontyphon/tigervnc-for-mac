@@ -1,6 +1,10 @@
 About TigerVNC
 ==============
 
+This fork adds configurable scrolling and Option-key compatibility for Apple's
+built-in VNC server. See `macOS compatibility and Ubuntu deployment
+<doc/macos-compatibility.md>`_ for installation, research, and known limitations.
+
 Virtual Network Computing (VNC) is a remote display system which allows you to
 view and interact with a virtual desktop environment that is running on another
 computer on the network.  Using VNC, you can run graphical applications on a

@@ -52,6 +52,14 @@
 static core::LogWriter vlog("Parameters");
 
 core::IntParameter
+  scrollWheelSpeed("ScrollWheelSpeed",
+                   _("Scroll steps per wheel notch (try 12 for macOS servers)"),
+                   1, 1, 50);
+core::BoolParameter
+  macOSOptionKey("MacOSOptionKey",
+                 _("Send Alt as Option to a macOS server"), false);
+
+core::IntParameter
   pointerEventInterval("PointerEventInterval",
                        _("Time in milliseconds to rate-limit "
                          "successive pointer events"),
@@ -291,6 +299,8 @@ static core::VoidParameter* parameterArray[] = {
   /* Input */
   &viewOnly,
   &emulateMiddleButton,
+  &scrollWheelSpeed,
+  &macOSOptionKey,
   &alwaysCursor,
   &cursorType,
   &acceptClipboard,

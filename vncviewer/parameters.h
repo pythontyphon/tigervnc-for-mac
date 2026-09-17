@@ -33,6 +33,8 @@
 
 
 extern core::IntParameter pointerEventInterval;
+extern core::IntParameter scrollWheelSpeed;
+extern core::BoolParameter macOSOptionKey;
 extern core::BoolParameter emulateMiddleButton;
 extern core::BoolParameter dotWhenNoCursor; // deprecated
 extern core::BoolParameter alwaysCursor;

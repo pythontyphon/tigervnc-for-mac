@@ -64,6 +64,7 @@
 #include <FL/Fl_Round_Button.H>
 #include <FL/Fl_Toggle_Button.H>
 #include <FL/Fl_Int_Input.H>
+#include <FL/Fl_Spinner.H>
 #include <FL/Fl_Choice.H>
 
 std::map<OptionsCallback*, void*> OptionsDialog::callbacks;
@@ -71,7 +72,7 @@ std::map<OptionsCallback*, void*> OptionsDialog::callbacks;
 static std::set<OptionsDialog *> instances;
 
 OptionsDialog::OptionsDialog()
-  : Fl_Window(580, 420, _("TigerVNC options"))
+  : Fl_Window(580, 480, _("TigerVNC options"))
 {
   int x, y;
   Fl_Navigation *navigation;
@@ -316,6 +317,8 @@ void OptionsDialog::loadOptions(void)
   /* Input */
   viewOnlyCheckbox->value(viewOnly);
   emulateMBCheckbox->value(emulateMiddleButton);
+  scrollWheelSpeedInput->value(scrollWheelSpeed);
+  macOSOptionKeyCheckbox->value(macOSOptionKey);
   acceptClipboardCheckbox->value(acceptClipboard);
 #if !defined(WIN32) && !defined(__APPLE__)
   setPrimaryCheckbox->value(setPrimary);
@@ -470,6 +473,8 @@ void OptionsDialog::storeOptions(void)
   /* Input */
   viewOnly.setParam(viewOnlyCheckbox->value());
   emulateMiddleButton.setParam(emulateMBCheckbox->value());
+  scrollWheelSpeed.setParam(static_cast<int>(scrollWheelSpeedInput->value()));
+  macOSOptionKey.setParam(macOSOptionKeyCheckbox->value());
   acceptClipboard.setParam(acceptClipboardCheckbox->value());
 #if !defined(WIN32) && !defined(__APPLE__)
   setPrimary.setParam(setPrimaryCheckbox->value());
@@ -948,6 +953,13 @@ void OptionsDialog::createInputPage(int tx, int ty, int tw, int th)
 
     ty += CHOICE_HEIGHT + TIGHT_MARGIN;
 
+    scrollWheelSpeedInput = new Fl_Spinner(
+      LBLLEFT(tx, ty, 70, INPUT_HEIGHT, _("Scroll wheel multiplier")));
+    scrollWheelSpeedInput->range(1, 50);
+    scrollWheelSpeedInput->step(1);
+    scrollWheelSpeedInput->tooltip(_("Try 12 for slow scrolling on macOS servers"));
+    ty += INPUT_HEIGHT + TIGHT_MARGIN;
+
   }
   ty -= TIGHT_MARGIN;
 
@@ -975,6 +987,11 @@ void OptionsDialog::createInputPage(int tx, int ty, int tw, int th)
       LBLRIGHT(tx, ty, CHECK_MIN_WIDTH, CHECK_HEIGHT,
                _("Always send all keyboard input in full screen")));
     systemKeysCheckbox->callback(handleSystemKeys, this);
+    ty += CHECK_HEIGHT + TIGHT_MARGIN;
+
+    macOSOptionKeyCheckbox = new Fl_Check_Button(
+      LBLRIGHT(tx, ty, CHECK_MIN_WIDTH, CHECK_HEIGHT,
+               _("Send Alt as Option (macOS server)")));
     ty += CHECK_HEIGHT + TIGHT_MARGIN;
   }
   ty -= TIGHT_MARGIN;

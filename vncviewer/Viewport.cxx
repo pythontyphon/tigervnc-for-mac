@@ -50,6 +50,7 @@
 #include "fltk/layout.h"
 #include "fltk/util.h"
 #include "Viewport.h"
+#include "RemoteInput.h"
 #include "CConn.h"
 #include "OptionsDialog.h"
 #include "DesktopWindow.h"
@@ -427,7 +428,7 @@ void Viewport::resize(int x, int y, int w, int h)
 int Viewport::handle(int event)
 {
   std::string filtered;
-  int buttonMask, wheelMask;
+  int buttonMask;
 
   switch (event) {
   case FL_PASTE:
@@ -496,21 +497,20 @@ int Viewport::handle(int event)
 #endif
 
     if (event == FL_MOUSEWHEEL) {
-      wheelMask = 0;
-      if (Fl::event_dy() < 0)
-        wheelMask |= 1 << 3;
-      if (Fl::event_dy() > 0)
-        wheelMask |= 1 << 4;
-      if (Fl::event_dx() < 0)
-        wheelMask |= 1 << 5;
-      if (Fl::event_dx() > 0)
-        wheelMask |= 1 << 6;
-
-      // A quick press of the wheel "button", followed by a immediate
-      // release below
-      handlePointerEvent({Fl::event_x() - x(), Fl::event_y() - y()},
-                         buttonMask | wheelMask);
-    } 
+      int dx = Fl::event_dx(), dy = Fl::event_dy();
+#ifdef __APPLE__
+      // FLTK 1.3 on macOS reports accelerated pixel-like deltas, unlike
+      // its Linux/Windows backends. Preserve the previous unit step.
+      dx = (dx > 0) - (dx < 0);
+      dy = (dy > 0) - (dy < 0);
+#endif
+      const core::Point pos(Fl::event_x() - x(), Fl::event_y() - y());
+      remoteInput::wheel(dx, dy, scrollWheelSpeed, buttonMask,
+                         [this, &pos](uint16_t mask) {
+                           handlePointerEvent(pos, mask);
+                         });
+      return 1;
+    }
 
     handlePointerEvent({Fl::event_x() - x(), Fl::event_y() - y()}, buttonMask);
     return 1;
@@ -831,6 +831,8 @@ void Viewport::sendKeyPress(int systemKeyCode,
     return;
 
   try {
+    if (macOSOptionKey)
+      keySym = remoteInput::macOSKey(keySym);
     cc->sendKeyPress(systemKeyCode, keyCode, keySym);
   } catch (std::exception& e) {
     vlog.error("%s", e.what());

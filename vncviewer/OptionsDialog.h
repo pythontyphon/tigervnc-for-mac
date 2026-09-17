@@ -31,6 +31,7 @@ class Fl_Round_Button;
 class Fl_Toggle_Button;
 class Fl_Input;
 class Fl_Int_Input;
+class Fl_Spinner;
 class Fl_Choice;
 class Fl_Monitor_Arrangement;
 
@@ -133,6 +134,8 @@ protected:
   Fl_Check_Button *viewOnlyCheckbox;
   Fl_Group *mouseGroup;
   Fl_Check_Button *emulateMBCheckbox;
+  Fl_Spinner *scrollWheelSpeedInput;
+  Fl_Check_Button *macOSOptionKeyCheckbox;
   Fl_Check_Button *alwaysCursorCheckbox;
   Fl_Choice *cursorTypeChoice;
   Fl_Group *keyboardGroup;

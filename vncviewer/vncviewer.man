@@ -143,6 +143,21 @@ Display a dialog with any fatal error before exiting. Default is on.
 Show a local cursor when the server sends an invisible cursor. Default is off.
 .
 .TP
+.B \-ScrollWheelSpeed \fImultiplier\fP
+Send this many scroll steps per wheel notch (1 to 50, default 1).
+Try 12 with macOS Screen Sharing if scrolling is too slow. Both axes are
+affected. Linux and Windows wheel-event magnitude is preserved, with at
+most 1000 steps per axis per event. macOS clients retain unit-step input
+because FLTK reports different units on that platform.
+.
+.TP
+.B \-MacOSOptionKey
+Map left Alt to Mode_switch and right Alt to ISO_Level3_Shift for Option
+shortcuts on a macOS server. Super/Windows keys remain unchanged (Command).
+Default is off. This does not change shortcuts intercepted by the local
+desktop or viewer.
+.
+.TP
 .B \-Audio
 Play audio sent by the server, if it offers any. Only some servers can send
 audio, and only some platforms can play it. Changing this only affects
