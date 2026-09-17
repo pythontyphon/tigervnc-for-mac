@@ -4,10 +4,14 @@
 
 #include <algorithm>
 #include <cstdint>
+// FLTK may already have included the system X11 keysyms. Including our
+// bundled copy again can redefine symbols on older X11 installations.
+#ifndef XK_ISO_Level3_Shift
 #define XK_MISCELLANY
 #define XK_XKB_KEYS
 #define XK_LATIN1
 #include <rfb/keysymdef.h>
+#endif
 
 namespace remoteInput {
 
