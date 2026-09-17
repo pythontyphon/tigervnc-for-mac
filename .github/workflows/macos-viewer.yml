@@ -42,12 +42,15 @@ jobs:
           xvfb-run -a python3 tests/remote-input-wire.py build/vncviewer/vncviewer
       - name: Package and verify installation
         run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target vncviewer --parallel 4
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           bash packaging/build-deb.sh
           apt-get install -y ./dist/*.deb
           vncviewer-macos --help 2>&1 | tee /tmp/viewer-help.txt
           grep -q ScrollWheelSpeed /tmp/viewer-help.txt
           grep -q MacOSOptionKey /tmp/viewer-help.txt
+          xvfb-run -a python3 tests/remote-input-wire.py /usr/bin/vncviewer-macos
           cd dist
           sha256sum *.deb > SHA256SUMS
       - uses: actions/upload-artifact@v4
