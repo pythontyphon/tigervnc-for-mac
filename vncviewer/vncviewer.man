@@ -143,6 +143,13 @@ Display a dialog with any fatal error before exiting. Default is on.
 Show a local cursor when the server sends an invisible cursor. Default is off.
 .
 .TP
+.B \-MacServer
+Pace wheel steps at 8 ms intervals for Mac servers. ScrollWheelSpeed=1 selects
+12 steps per notch in this mode. Queued scrolling is capped at 24 steps per axis;
+excess input is discarded. Reversing direction replaces queued steps. Pointer
+movement, clicks, focus loss and options changes cancel pending scrolling.
+Default is off. This is standard VNC scrolling, not native Apple pixel scrolling.
+.TP
 .B \-ScrollWheelSpeed \fImultiplier\fP
 Send this many scroll steps per wheel notch (1 to 50, default 1).
 Try 12 with macOS Screen Sharing if scrolling is too slow. Both axes are

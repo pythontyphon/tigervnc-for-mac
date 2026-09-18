@@ -151,6 +151,7 @@ Viewport::Viewport(int w, int h, CConn* cc_)
 
 Viewport::~Viewport()
 {
+  cancelWheel();
   // Unregister all timeouts in case they get a change tro trigger
   // again later when this object is already gone.
   Fl::remove_timeout(handlePointerTimeout, this);
@@ -464,6 +465,7 @@ int Viewport::handle(int event)
     return 1;
 
   case FL_LEAVE:
+    cancelWheel();
     window()->cursor(FL_CURSOR_DEFAULT);
     // We want a last move event to help trigger edge stuff
     handlePointerEvent({Fl::event_x() - x(), Fl::event_y() - y()}, 0);
@@ -496,6 +498,9 @@ int Viewport::handle(int event)
       buttonMask |= 1 << 8;
 #endif
 
+    if (event != FL_MOUSEWHEEL)
+      cancelWheel();
+
     if (event == FL_MOUSEWHEEL) {
       int dx = Fl::event_dx(), dy = Fl::event_dy();
 #ifdef __APPLE__
@@ -505,6 +510,17 @@ int Viewport::handle(int event)
       dy = (dy > 0) - (dy < 0);
 #endif
       const core::Point pos(Fl::event_x() - x(), Fl::event_y() - y());
+      if (macServer && !viewOnly) {
+        if (!pacedWheel.empty() &&
+            (wheelPos != pos || wheelButtons != buttonMask))
+          cancelWheel();
+        wheelPos = pos;
+        wheelButtons = buttonMask;
+        pacedWheel.add(dx, dy, scrollWheelSpeed == 1 ? 12 : int(scrollWheelSpeed));
+        if (!Fl::has_timeout(handleWheelTimeout, this))
+          handleWheelTimeout(this);
+        return 1;
+      }
       remoteInput::wheel(dx, dy, scrollWheelSpeed, buttonMask,
                          [this, &pos](uint16_t mask) {
                            handlePointerEvent(pos, mask);
@@ -532,6 +548,7 @@ int Viewport::handle(int event)
     return 1;
 
   case FL_UNFOCUS:
+    cancelWheel();
     // We won't get more key events, so reset our knowledge about keys
     resetKeyboard();
     return 1;
@@ -680,6 +697,27 @@ void Viewport::handlePointerTimeout(void *data)
   }
 }
 
+
+void Viewport::cancelWheel()
+{
+  Fl::remove_timeout(handleWheelTimeout, this);
+  pacedWheel.clear();
+}
+
+void Viewport::handleWheelTimeout(void *data)
+{
+  Viewport* self = static_cast<Viewport*>(data);
+  if (viewOnly || !macServer) {
+    self->cancelWheel();
+    return;
+  }
+  self->pacedWheel.tick(self->wheelButtons, [self](uint16_t mask) {
+    self->handlePointerEvent(self->wheelPos, mask);
+  });
+  // Schedule from now, never catch up with a burst after a stalled GUI loop.
+  if (!self->pacedWheel.empty())
+    Fl::add_timeout(0.008, handleWheelTimeout, self);
+}
 
 void Viewport::resetKeyboard()
 {
@@ -1070,6 +1108,8 @@ void Viewport::handleOptions(void *data)
 {
   Viewport *self = (Viewport*)data;
   unsigned modifierMask;
+
+  self->cancelWheel();
 
   modifierMask = 0;
   for (core::EnumListEntry key : shortcutModifiers)

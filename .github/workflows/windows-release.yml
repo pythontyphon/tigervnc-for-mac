@@ -1,0 +1,65 @@
+name: Windows Mac server viewer
+
+on:
+  push:
+    tags: ['windows-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            make zip mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-fltk1.3 mingw-w64-x86_64-libjpeg-turbo
+            mingw-w64-x86_64-gnutls mingw-w64-x86_64-pixman
+            mingw-w64-x86_64-nettle mingw-w64-x86_64-gmp
+            mingw-w64-x86_64-gtest
+      - name: Configure
+        run: |
+          cmake -G 'MSYS Makefiles' -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_VIEWER=ON -DBUILD_WINVNC=OFF \
+            -DENABLE_NLS=OFF -DENABLE_H264=OFF -DENABLE_AUDIO=OFF \
+            -DENABLE_GNUTLS=ON -DENABLE_NETTLE=ON
+      - name: Build and test
+        run: |
+          cmake --build build --parallel 4
+          ctest --test-dir build/tests/unit --output-on-failure
+      - name: Package portable viewer with runtime libraries
+        run: bash packaging/build-windows-zip.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tigervnc-mac-server-windows-x64
+          path: dist/*
+          if-no-files-found: error
+  publish:
+    if: startsWith(github.ref, 'refs/tags/windows-')
+    needs: windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: tigervnc-mac-server-windows-x64
+          path: dist
+      - name: Publish Windows prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --prerelease \
+            --title "Windows Mac server viewer: $GITHUB_REF_NAME" \
+            --notes-file packaging/windows-release-notes.md

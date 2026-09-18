@@ -317,6 +317,7 @@ void OptionsDialog::loadOptions(void)
   /* Input */
   viewOnlyCheckbox->value(viewOnly);
   emulateMBCheckbox->value(emulateMiddleButton);
+  macServerCheckbox->value(macServer);
   scrollWheelSpeedInput->value(scrollWheelSpeed);
   macOSOptionKeyCheckbox->value(macOSOptionKey);
   acceptClipboardCheckbox->value(acceptClipboard);
@@ -473,6 +474,7 @@ void OptionsDialog::storeOptions(void)
   /* Input */
   viewOnly.setParam(viewOnlyCheckbox->value());
   emulateMiddleButton.setParam(emulateMBCheckbox->value());
+  macServer.setParam(macServerCheckbox->value());
   scrollWheelSpeed.setParam(static_cast<int>(scrollWheelSpeedInput->value()));
   macOSOptionKey.setParam(macOSOptionKeyCheckbox->value());
   acceptClipboard.setParam(acceptClipboardCheckbox->value());
@@ -953,11 +955,16 @@ void OptionsDialog::createInputPage(int tx, int ty, int tw, int th)
 
     ty += CHOICE_HEIGHT + TIGHT_MARGIN;
 
+    macServerCheckbox = new Fl_Check_Button(
+      LBLRIGHT(tx, ty, CHECK_MIN_WIDTH, CHECK_HEIGHT, _("Mac server")));
+    macServerCheckbox->tooltip(_("Pace wheel events for smoother Mac scrolling; multiplier 1 selects 12"));
+    ty += CHECK_HEIGHT + TIGHT_MARGIN;
+
     scrollWheelSpeedInput = new Fl_Spinner(
       LBLLEFT(tx, ty, 70, INPUT_HEIGHT, _("Scroll wheel multiplier")));
     scrollWheelSpeedInput->range(1, 50);
     scrollWheelSpeedInput->step(1);
-    scrollWheelSpeedInput->tooltip(_("Try 12 for slow scrolling on macOS servers"));
+    scrollWheelSpeedInput->tooltip(_("Steps per notch; 1 selects 12 when Mac server is enabled"));
     ty += INPUT_HEIGHT + TIGHT_MARGIN;
 
   }

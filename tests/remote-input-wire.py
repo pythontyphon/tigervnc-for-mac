@@ -32,8 +32,9 @@ def wait_for(predicate, message):
     raise AssertionError(message)
 
 
-def run_case(viewer, multiplier, mapping, view_only=False):
+def run_case(viewer, multiplier, mapping, view_only=False, mac_server=False):
     pointers, keys, errors = [], [], []
+    pointer_times = []
     ready = threading.Event()
     stopping = threading.Event()
     with socket.socket() as listener, tempfile.TemporaryFile(mode="w+") as log:
@@ -74,6 +75,7 @@ def run_case(viewer, multiplier, mapping, view_only=False):
                             keys.append((down, symbol))
                         elif kind == 5:
                             mask, _, _ = struct.unpack(">BHH", receive(conn, 5))
+                            pointer_times.append(time.monotonic())
                             pointers.append(mask)
                         elif kind == 6:
                             length = struct.unpack(">xxxI", receive(conn, 7))[0]
@@ -92,7 +94,7 @@ def run_case(viewer, multiplier, mapping, view_only=False):
             viewer, "-SecurityTypes=None", "-AlertOnFatalError=0",
             "-ReconnectOnError=0", "-RemoteResize=0", "-SendClipboard=0",
             f"-ScrollWheelSpeed={multiplier}", f"-MacOSOptionKey={int(mapping)}",
-            f"-ViewOnly={int(view_only)}", f"127.0.0.1::{port}",
+            f"-MacServer={int(mac_server)}", f"-ViewOnly={int(view_only)}", f"127.0.0.1::{port}",
         ], stdout=log, stderr=log)
         try:
             wait_for(ready.is_set, "viewer did not complete RFB handshake")
@@ -105,6 +107,27 @@ def run_case(viewer, multiplier, mapping, view_only=False):
                            check=True, timeout=10)
             time.sleep(0.2)
             start = len(pointers)
+            if mac_server and not view_only:
+                subprocess.run(["xdotool", "click", "4"], check=True, timeout=10)
+                steps = 12 if multiplier == 1 else multiplier
+                wait_for(lambda: pointers[start:].count(8) == steps,
+                         "paced wheel events missing")
+                presses = [pointer_times[i] for i in range(start, len(pointers))
+                           if pointers[i] == 8]
+                assert presses[-1] - presses[0] >= 0.05, presses
+                assert [m for m in pointers[start:] if m] == [8] * steps
+                # A click must cancel the remaining tail without replaying it.
+                start = len(pointers)
+                subprocess.run(["xdotool", "click", "--clearmodifiers", "--delay", "0", "5",
+                                "mousedown", "1", "mouseup", "1"],
+                               check=True, timeout=10)
+                time.sleep(0.3)
+                actual = pointers[start:]
+                click = actual.index(1)
+                assert actual[:click].count(16) < steps, actual
+                assert not any(m & 0x78 for m in actual[click:]), actual
+                assert not errors, errors
+                return
             subprocess.run(["xdotool", "mousedown", "1", "click", "4",
                             "click", "7", "mouseup", "1",
                             "keydown", "Alt_L", "keyup", "Alt_L"],
@@ -140,4 +163,6 @@ if __name__ == "__main__":
     run_case(sys.argv[1], 12, True)
     run_case(sys.argv[1], 1, False)
     run_case(sys.argv[1], 12, True, view_only=True)
-    print("Wire tests passed: scrolling, held buttons, key release, defaults, view-only")
+    run_case(sys.argv[1], 1, False, mac_server=True)
+    run_case(sys.argv[1], 12, True, view_only=True, mac_server=True)
+    print("Wire tests passed: paced scrolling, cancellation, scrolling, held buttons, key release, defaults, view-only")

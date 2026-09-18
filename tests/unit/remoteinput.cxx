@@ -47,3 +47,44 @@ TEST(RemoteInput, OptionMappingPreservesOtherKeys)
                        XK_ISO_Level3_Shift, XK_a})
     EXPECT_EQ(remoteInput::macOSKey(key), key);
 }
+
+TEST(RemoteInput, PacedWheelSpreadsStepsAndPreservesButtons)
+{
+  remoteInput::PacedWheel wheel;
+  std::vector<uint16_t> events;
+  auto send = [&](uint16_t mask) { events.push_back(mask); };
+  wheel.add(1, -1, 12);
+  for (int i = 0; i < 12; ++i) {
+    ASSERT_FALSE(wheel.empty());
+    events.clear();
+    wheel.tick(5, send);
+    EXPECT_EQ(events, (std::vector<uint16_t>{13, 5, 69, 5}));
+  }
+  EXPECT_TRUE(wheel.empty());
+  events.clear();
+  wheel.tick(0, send);
+  EXPECT_TRUE(events.empty());
+}
+
+TEST(RemoteInput, PacedWheelBoundsBacklogAndReversesImmediately)
+{
+  remoteInput::PacedWheel wheel;
+  wheel.add(INT_MIN, INT_MAX, 50);
+  wheel.add(INT_MIN, INT_MAX, 50);
+  int ticks = 0;
+  while (!wheel.empty() && ticks < 100) {
+    wheel.tick(0, [](uint16_t) {});
+    ++ticks;
+  }
+  EXPECT_EQ(ticks, 24);
+  wheel.add(0, 5, 12);
+  wheel.add(0, -1, 2);
+  std::vector<uint16_t> events;
+  wheel.tick(0, [&](uint16_t mask) { events.push_back(mask); });
+  EXPECT_EQ(events, (std::vector<uint16_t>{8, 0}));
+  wheel.tick(0, [](uint16_t) {});
+  EXPECT_TRUE(wheel.empty());
+  wheel.add(1, 1, 12);
+  wheel.clear();
+  EXPECT_TRUE(wheel.empty());
+}

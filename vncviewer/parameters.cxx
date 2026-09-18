@@ -51,9 +51,12 @@
 
 static core::LogWriter vlog("Parameters");
 
+core::BoolParameter
+  macServer("MacServer", _("Pace scrolling for a Mac server (speed 1 selects 12)"), false);
+
 core::IntParameter
   scrollWheelSpeed("ScrollWheelSpeed",
-                   _("Scroll steps per wheel notch (try 12 for macOS servers)"),
+                   _("Scroll steps per wheel notch (1 selects 12 in Mac server mode)"),
                    1, 1, 50);
 core::BoolParameter
   macOSOptionKey("MacOSOptionKey",
@@ -299,6 +302,7 @@ static core::VoidParameter* parameterArray[] = {
   /* Input */
   &viewOnly,
   &emulateMiddleButton,
+  &macServer,
   &scrollWheelSpeed,
   &macOSOptionKey,
   &alwaysCursor,

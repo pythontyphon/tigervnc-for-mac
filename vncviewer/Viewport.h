@@ -26,6 +26,7 @@
 
 #include "EmulateMB.h"
 #include "Keyboard.h"
+#include "RemoteInput.h"
 #include "ShortcutHandler.h"
 
 class Fl_Menu_Button;
@@ -86,6 +87,8 @@ private:
 
   void handlePointerEvent(const core::Point& pos, uint16_t buttonMask);
   static void handlePointerTimeout(void *data);
+  void cancelWheel();
+  static void handleWheelTimeout(void *data);
 
   void resetKeyboard();
 
@@ -112,6 +115,10 @@ private:
 
   core::Point lastPointerPos;
   uint16_t lastButtonMask;
+
+  remoteInput::PacedWheel pacedWheel;
+  core::Point wheelPos;
+  uint16_t wheelButtons = 0;
 
   Keyboard* keyboard;
   ShortcutHandler shortcutHandler;

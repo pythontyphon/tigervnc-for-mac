@@ -39,6 +39,36 @@ void wheel(int dx, int dy, int multiplier, uint16_t heldButtons, Send send)
   }
 }
 
+// Pace at most one step per axis per timer tick. Bound the tail to 192 ms
+// (24 ticks at 8 ms), discarding excess input instead of building seconds of
+// delayed scrolling. Reversals replace the old direction immediately.
+class PacedWheel {
+public:
+  void clear() { pending[0] = pending[1] = 0; }
+  bool empty() const { return pending[0] == 0 && pending[1] == 0; }
+  void add(int dx, int dy, int multiplier) {
+    const int deltas[] = {dx, dy};
+    for (int axis = 0; axis < 2; ++axis) {
+      if (!deltas[axis]) continue;
+      const int direction = deltas[axis] > 0 ? 1 : -1;
+      if ((pending[axis] > 0) != (direction > 0)) pending[axis] = 0;
+      const int steps = wheelSteps(deltas[axis], multiplier);
+      pending[axis] = (std::max)(-24, (std::min)(24,
+        pending[axis] + direction * steps));
+    }
+  }
+  template<typename Send>
+  void tick(uint16_t heldButtons, Send send) {
+    const int dx = (pending[0] > 0) - (pending[0] < 0);
+    const int dy = (pending[1] > 0) - (pending[1] < 0);
+    pending[0] -= dx;
+    pending[1] -= dy;
+    wheel(dx, dy, 1, heldButtons, send);
+  }
+private:
+  int pending[2] = {0, 0};
+};
+
 // Apple treats Alt as Command. Use the Option/AltGr keysyms, matching
 // TigerVNC's existing macOS-client mapping. Super remains Command.
 inline uint32_t macOSKey(uint32_t keySym)

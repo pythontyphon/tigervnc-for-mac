@@ -33,6 +33,7 @@
 
 
 extern core::IntParameter pointerEventInterval;
+extern core::BoolParameter macServer;
 extern core::IntParameter scrollWheelSpeed;
 extern core::BoolParameter macOSOptionKey;
 extern core::BoolParameter emulateMiddleButton;

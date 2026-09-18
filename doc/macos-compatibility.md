@@ -1,4 +1,4 @@
-# macOS compatibility and Linux deployment
+# macOS compatibility and deployment
 
 Target: Ubuntu 26.04 **x86-64 (amd64)** clients connecting to Apple's built-in
 Screen Sharing / Remote Management server. Research date: 2026-09-17.
@@ -6,6 +6,16 @@ Screen Sharing / Remote Management server. Research date: 2026-09-17.
 End-to-end behavior on that release still needs a live Mac acceptance test.
 
 ## Changes
+
+* **Options → Input → Mouse → Mac server** (`MacServer=1`) enables paced
+  scrolling and is saved in connection profiles. Multiplier 1 automatically
+  selects 12 steps in this mode; 2–50 overrides the amount. Events are sent
+  one step per axis every 8 ms, not in a single burst. Pending work is bounded
+  to 24 steps per axis (about 192 ms), discarding excess input under load.
+  Reversing direction replaces queued steps on that axis. Moving the pointer,
+  clicking, leaving the viewer, losing focus, or changing options cancels the
+  tail so it cannot scroll a different control. No synthetic momentum is added.
+  This pacing is experimental and needs a live Mac comparison.
 
 * `ScrollWheelSpeed=1..50` repeats standard RFB wheel press/release pairs;
   start with **12** for Apple's slow scrolling. Default is 1 for other servers.
@@ -18,7 +28,7 @@ End-to-end behavior on that release still needs a live Mac acceptance test.
   Existing connection key tracking uses the same mapped symbol on release.
   This follows TigerVNC's existing macOS-client Option mapping; confirm it
   with your server and keyboard layout.
-* Both settings are in **Options → Input** and saved in connection profiles.
+* These settings are in **Options → Input** and saved in connection profiles.
 
 ## Install
 
@@ -31,7 +41,7 @@ sudo apt install ./tigervnc-macos-viewer_*_amd64.deb
 mac-vnc mac-hostname
 ```
 
-`mac-vnc` selects multiplier 12, Option mapping, and `RemoteResize=0`.
+`mac-vnc` selects Mac server mode, multiplier 12, Option mapping, and `RemoteResize=0`.
 Override settings after the command:
 
 ```sh
@@ -94,9 +104,13 @@ bash packaging/build-deb.sh
 
 ## Windows and iOS/iPadOS
 
-TigerVNC's native source supports Windows and these input changes are portable,
-but this project's artifact targets Linux. A tested Windows installer is a
-follow-up. There is no iOS/iPadOS target in TigerVNC's native build system;
+The Windows Mac server viewer workflow builds and unit-tests a Release-mode
+x64 viewer, bundles its runtime DLLs, and creates a portable ZIP with SHA256SUMS.
+Tags matching `windows-*` publish a GitHub prerelease; manual workflow runs
+produce an Actions artifact. Extract the complete ZIP and run `vncviewer.exe`,
+then check **Options → Input → Mouse → Mac server**. `Mac server.cmd` selects
+that mode plus Option mapping and disables remote resizing.
+ There is no iOS/iPadOS target in TigerVNC's native build system;
 those devices need another viewer or a separate mobile project. A browser
 viewer plus gateway could share a UI but still requires Apple-specific input
 work and another service; it is not a demonstrated universal fix.
@@ -104,7 +118,7 @@ work and another service; it is not a demonstrated universal fix.
 ## Mac acceptance test
 
 1. Record `sw_vers`, keyboard layout and Linux X11/Wayland session type.
-2. Compare multiplier 1 and 12 in Safari/Chrome, Finder and Terminal. Tune down
+2. Compare Mac server mode off/on and multiplier 6 and 12 in Safari/Chrome, Finder and Terminal. Tune down
    if Terminal overscrolls. Try fast wheels, trackpads and both axes.
 3. Scroll while dragging, then release; check that no mouse button stays held.
 4. Test Option+arrow, Command+C/V, Control, right Alt/AltGr, and key release
@@ -124,3 +138,19 @@ xvfb-run -a python3 tests/remote-input-wire.py build/vncviewer/vncviewer
 
 These checks cannot establish behavior on a Mac that was not available during
 development.
+
+## Why native Screen Sharing can feel different
+
+[RFB 7.5.5](https://www.rfc-editor.org/rfc/rfc6143.html#section-7.5.5)
+encodes wheel movement as button press/release pairs, without pixel deltas,
+gesture phase or momentum. Pacing these pairs addresses burstiness but cannot
+supply those missing semantics. FLTK 1.3 also limits the input available here.
+
+[Apple documents](https://support.apple.com/en-au/guide/mac-help/mchl1883115d/mac)
+a separate High Performance mode with 30/60 FPS and low latency on supported
+Apple silicon Macs. That is another possible contributor to perceived
+smoothness, not proof of which input path was used in a particular session.
+Native pixel scrolling would require verifying Apple's negotiated input
+extensions (including units, phases and compatibility) with a live Mac and
+implementing them alongside a standard-RFB fallback. This release does not
+send speculative private messages or claim native Screen Sharing parity.

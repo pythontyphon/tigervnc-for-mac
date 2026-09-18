@@ -134,6 +134,7 @@ protected:
   Fl_Check_Button *viewOnlyCheckbox;
   Fl_Group *mouseGroup;
   Fl_Check_Button *emulateMBCheckbox;
+  Fl_Check_Button *macServerCheckbox;
   Fl_Spinner *scrollWheelSpeedInput;
   Fl_Check_Button *macOSOptionKeyCheckbox;
   Fl_Check_Button *alwaysCursorCheckbox;
